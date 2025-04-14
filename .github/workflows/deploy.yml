@@ -1,1 +1,31 @@
+name: Deploy Blog App
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Login Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build and Push Docker image
+        run: |
+          docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/blog-api:latest ./backend
+          echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+          docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/blog-api:latest
+
+      - name: Deploy Infraestrutura
+        run: |
+          az deployment group create \
+            --resource-group nome-do-rg \
+            --template-file infrastructure/bicep/main.bicep \
+            --parameters name=blogapp
 
